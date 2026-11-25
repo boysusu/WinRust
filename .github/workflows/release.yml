@@ -1,0 +1,47 @@
+# On a version tag (v0.5.8, or a prerelease like v0.0.0-test), build the installer and publish WinRust.exe.
+# That is the same file official releases attach (a renamed plugin-launcher.exe). The signed auto-update
+# manifest (manifest.txt / manifest.sig) is not produced here: it needs a private key this workflow does
+# not require. A tag with a hyphen is published as a prerelease.
+name: release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to publish (e.g. v0.5.9, or a disposable prerelease like v0.0.0-test)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            plugins/rust-search
+      - name: Build all (plugins, payload, installer)
+        run: powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
+      - name: Stage WinRust.exe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          Copy-Item target\release\plugin-launcher.exe release-assets\WinRust.exe
+          if (-not (Test-Path release-assets\WinRust.exe)) { throw 'WinRust.exe was not produced' }
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { '${{ inputs.tag }}' } else { $env:GITHUB_REF_NAME }
+          if ($tag -notmatch '^v') { throw "ref '$tag' is not a version tag" }
+          $pre = @()
+          if ($tag -match '-') { $pre = @('--prerelease') }
+          gh release create $tag release-assets/WinRust.exe --repo $env:GITHUB_REPOSITORY --title "WinRust $tag" --generate-notes @pre

@@ -38,7 +38,7 @@ Windows 搜索是可选项：在精简过的 Windows 上（例如去掉 Windows 
 
 | 插件 | 你会得到什么 | 它改动了 Windows 的什么 |
 |---|---|---|
-| **rust-search** | 覆盖全部 NTFS 驱动器的文件搜索，Alt+Space。配合 topbar 时 Win+R 打开它的「运行」模式：历史记录、文件夹补全（Tab）、Ctrl+Shift+Enter 以管理员身份运行 | 关闭 Windows 搜索服务、拦截 SearchHost.exe、隐藏任务栏搜索框 |
+| **rust-search** | 覆盖全部 NTFS 驱动器的文件搜索，Alt+Space。配合 topbar 时 Win+R 打开它的「运行」模式：历史记录、文件夹补全（Tab）、Ctrl+Shift+Enter 以管理员身份运行。若已在运行 Everything 的托盘或窗口（不只是服务），搜索会改用它的索引 | 关闭 Windows 搜索服务、拦截 SearchHost.exe、隐藏任务栏搜索框 |
 | **rtaskmgr-win32** | 任务管理器（Ctrl+Shift+Esc 打开它） | `taskmgr.exe` 被重定向到它（系统文件本身不动）。同时装 **rs-du** 磁盘清理。**加速**页里有一批自愿开启、可逆的开关：游戏 / 工作配置文件（停止后台服务、关闭启动器或同步类应用，之后再把它们启动回来）、清理内存备用缓存（立即，或 topbar 运行时自动）、拦截 Windows 开始菜单、小组件和「手机连接」的进程、用每周一次的 `winget upgrade` 代替第三方更新器、给构建缓存和游戏库加 Defender 排除项、更快的 NTFS（不记录最后访问时间、不用 8.3 短名）、广告拦截 hosts 文件。**启动项**页还会列出登录/启动任务和第三方自启动服务，并给出它们各自拖慢了最近几次启动多少（用 Windows 自己的启动日志）。**什么在变慢**页显示驱动耗时（DPC/中断）、无响应的窗口、慢磁盘和启动耗时。卸载会把这一切改回去 |
 | **topbar** | Windows 11 风格的底部栏：窗口、时钟、音量、各种菜单 | 隐藏系统任务栏。同时装 **reshell**（快捷键：Win+Ctrl+1/2/3 和 Win+\` 切换桌面（Win+1..9 打开栏上的应用按钮）、Win+D 显示桌面、Win+I 打开设置、Win+E 打开文件管理器；栏挂了它会把任务栏找回来）、**rs-du**，以及 PowerShell 配置文件里的一段（`zoxide`、`grep`=rg、`ll`=eza、`cat`=bat；没装就什么都不做）。齿轮菜单里有几页短设置：主题、颜色与透明度（栏和 WinRust 窗口的任何颜色、栏的不透明度）、模板（保存自己的一套外观并在其间切换）、位置、大小、行为（底部 / 左侧 / 右侧、大小、自动隐藏、像 Windows 10 那样把按钮放在左端）以及「将所有设置恢复默认」 |
 | **rust-explorer** | 带标签页的文件管理器，还有桌面 | 文件夹和驱动器在它里面打开；**资源管理器不再是外壳**（topbar 出问题时它会自己回来）。全新安装时，会在能备份原值的前提下调整 PcaSvc、InventorySvc、lfsvc、cbdhsvc 和 DoSvc 的启动设置，以及 svchost 分组阈值。它自带的复制引擎（SSD 上同时复制多个文件、大文件用无缓冲方式、进度显示在状态行）和右键菜单的**压缩为 ZIP**（用满所有核心）/ **解压到这里**（ZIP 和 7z），都是我们自己的 ZIP 引擎；`.zip` 像文件夹一样打开（浏览、往外复制、直接打开里面的文件）。其它程序里的「在文件夹中显示」会选中该文件（对于常见文件夹：下载、文档、桌面、图片、音乐、视频以及已固定的文件夹，即使没有打开窗口也可以）；鼠标的「后退 / 前进」键可用；右键单击桌面可以隐藏桌面图标。需要 topbar |
@@ -131,7 +131,7 @@ scripts/        构建、更新、发布
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
 ```
-产物：`target\release\plugin-launcher.exe`，所有插件都在里面。先关掉正在运行的安装程序。测试：`cargo test --workspace`（以及在 `plugins\rust-search` 里跑 `cargo test`）。CI 在每次推送时跑同样的步骤（`.github/workflows/build.yml`）。
+产物：`target\release\plugin-launcher.exe`，所有插件都在里面。先关掉正在运行的安装程序。测试：`cargo test --workspace`（以及在 `plugins\rust-search` 里跑 `cargo test`）。CI 在每次推送和 pull request 时跑同样的步骤（`.github/workflows/build.yml`）。打上 `v*` 标签会构建 `WinRust.exe` 并创建 GitHub Release（`.github/workflows/release.yml`）。
 
 | 脚本 | 做什么 |
 |---|---|

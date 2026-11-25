@@ -2,13 +2,13 @@
 // Virtual list (LVS_OWNERDATA, only visible rows are asked for text/icon), system icons, tabs,
 // IFileOperation (recycle bin / undo / elevation prompts), real shell context menu with submenus, OLE drag and drop.
 // Keys: Enter open, Backspace up, F2 rename, Del recycle, Ctrl+C/X/V copy/cut/paste, Ctrl+N new folder,
-// Ctrl+T/W/Tab tabs, Ctrl+M thumbnails, Ctrl+L/F4 address bar, Ctrl+F or "? terms" in the bar = instant search through the rs service, right click / Menu key = shell context menu.
+// Ctrl+T/W/Tab tabs, Ctrl+M thumbnails, Ctrl+L/F4 address bar, Ctrl+F or "? terms" in the bar = instant search through Everything or the rs service, right click / Menu key = shell context menu.
 // Look: topbar's palette, painted tabs / toolbar / address pill and status line (src/ui.rs), dark title bar and list.
 // Clipboard is the system one (Ctrl+C/X/V interoperate with Explorer). Also: Alt+Left/Right back/forward, Alt+Up up,
 // Alt+Enter properties, F5 refresh, Ctrl+H hidden files, click a column header to sort, right click on empty space = folder menu.
 // shortcuts: std::fs listing (not FindFirstFileEx large fetch), icons are extension-based (exe/lnk/ico/url/scr
 // per file) and synchronous (thumbnails: one background thread, 96px, no disk cache), internal copy/cut clipboard, silent rename errors,
-// search blocks the UI while it waits for the service (no async), the service pipe is admin-only so run as admin,
+// search blocks the UI while it waits for Everything or the service (no async), the rust-search pipe is admin-only so run as admin,
 // drops always land in the current folder (not on a folder row), tabs remember only the folder (no selection/scroll).
 // upgrade: each of those one at a time; then register as the folder-open handler.
 // rust-explorer --desktop  - the desktop for rs-shell: borderless bottom-most color-keyed window with the Desktop folders
@@ -639,30 +639,17 @@ fn load(h: HWND, dir: PathBuf) {
     if desk() { desk::fill(list, n); } else { put(list, LVM_SETITEMCOUNT, n, 0); }
 }
 
-/// Asks the rust-search service of drive `d` (see plugins/rust-search): terms in, one path per line out.
-/// None = no service for that drive or no access (its pipe is admin-only unless started with --allow).
-fn ask(d: char, q: &str) -> Option<String> {
-    use std::{fs::OpenOptions, io::{Read, Write}};
-    let mut p = OpenOptions::new().read(true).write(true).open(format!(r"\\.\pipe\rs-search-{d}")).ok()?;
-    p.write_all(q.as_bytes()).ok()?;
-    let (mut out, mut chunk) = (Vec::new(), [0u8; 1 << 16]);
-    // the server ends its reply by hanging up, which surfaces as a read error: treat any error as EOF
-    while let Ok(n @ 1..) = p.read(&mut chunk) { out.extend_from_slice(&chunk[..n]); }
-    Some(String::from_utf8_lossy(&out).into_owned())
-}
-
-/// Fills the list with search hits from every drive's service. Rows hold absolute paths, so joining them
-/// onto the current dir still yields the right file. Blocks the UI for the duration of the query (fast).
-/// Never call with ST borrowed.
+/// Fills the list with search hits from Everything (if its tray/UI client is running) or every drive's
+/// rust-search service. Rows hold absolute paths, so joining them onto the current dir still yields the
+/// right file. Blocks the UI for the duration of the query (fast). Never call with ST borrowed.
 fn search(h: HWND, q: &str) {
     let mut rows = vec![];
     let mut more = String::new();
-    let mut indexed = false; // some drive had a rust-search service
-    for d in 'A'..='Z' {
-        let Some(reply) = ask(d, q) else { continue };
-        indexed = true;
-        for line in reply.lines() {
-            if line.starts_with("... ") { more = format!(", {}", line.trim_start_matches("... ")); continue; }
+    let hits = winrust_common::search::ask_hits(q);
+    let indexed = hits.indexed; // Everything answered, or a rust-search pipe was open
+    if indexed {
+        if hits.more > 0 { more = format!(", {} more", hits.more); }
+        for line in &hits.paths {
             let m = fs::metadata(line).ok();
             rows.push(row(line.to_string(), m.as_ref()));
         }
