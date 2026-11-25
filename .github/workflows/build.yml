@@ -1,4 +1,5 @@
 # Builds and tests pushes to main and pull requests. Only pushes to main retain the installer artifact.
+# Version tags (v*) are published by release.yml instead, as WinRust.exe.
 name: build
 on:
   push:
