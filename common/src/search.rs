@@ -70,7 +70,7 @@ pub fn ask_hits(q: &str) -> Hits {
 
 fn rust_search(q: &str) -> Hits {
     let mut paths = Vec::new();
-    let mut more = 0;
+    let mut more: usize = 0;
     let mut indexed = false;
     for d in drive_letters() {
         let Some(reply) = ask(d, q) else { continue };
@@ -83,7 +83,7 @@ fn rust_search(q: &str) -> Hits {
 
 /// Collects paths from a rust-search pipe reply. Returns the "... N more" count (0 if none).
 fn take_lines(s: &str, paths: &mut Vec<String>) -> usize {
-    let mut more = 0;
+    let mut more: usize = 0;
     for line in s.lines() {
         if let Some(rest) = line.strip_prefix("... ") {
             if let Some(n) = rest.split_whitespace().next().and_then(|x| x.parse().ok()) {
