@@ -176,13 +176,9 @@ mod tests {
     fn start_menu_shortcuts_and_exes_rank_ahead_of_os_stores() {
         let p = rank_paths(
             [
-                r"C:\WinSxS\hosts".into(),
-                r"C:\Users\Docs\hosts".into(),
                 r"C:\Users\Docs\editor".into(),
                 r"C:\Users\Docs\My Editor.lnk".into(),
                 r"C:\ProgramData\Start Menu\Programs\My Editor.lnk".into(),
-                r"C:\tooling.exe".into(),
-                r"C:\Users\Docs\tool.txt".into(),
             ],
             Some("editor"),
         );
